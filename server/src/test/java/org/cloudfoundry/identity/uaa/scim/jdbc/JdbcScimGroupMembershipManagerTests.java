@@ -549,26 +549,32 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void canUpdateOrAddMembers() {
-        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), IdentityZoneHolder.get().getId());
-        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), IdentityZoneHolder.get().getId());
+        String zoneId = IdentityZoneHolder.get().getId();
+
+        dao.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER), zoneId);
+        dao.addMember("g1", new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER), zoneId);
+
+        dao.addMember("g2", new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN), zoneId);
+
         validateCount(4);
         validateUserGroups("m1", "test1");
         validateUserGroups("m2", "test2", "test1.i");
-        JdbcScimGroupMembershipManager spy = Mockito.spy(dao);
-        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN);
-        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m4 = new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
 
-        List<ScimGroupMember> members = spy.updateOrAddMembers("g1", Arrays.asList(g2, m3, m4), IdentityZoneHolder.get().getId());
+        JdbcScimGroupMembershipManager spy = Mockito.spy(dao);
+
+        ScimGroupMember g2 = new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_ADMIN); // update role member->admin
+        ScimGroupMember m3 = new ScimGroupMember("m3", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // new member
+        ScimGroupMember m4 = new ScimGroupMember("m4", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER); // does not change
+
+        List<ScimGroupMember> members = spy.updateOrAddMembers("g1", Arrays.asList(g2, m3, m4), zoneId);
 
         validateCount(4);
-        verify(spy).updateMember("g1", g2, IdentityZoneHolder.get().getId());
-        verify(spy, times(0)).updateMember("g1", m4, IdentityZoneHolder.get().getId());
-        verify(spy).addMember("g1", m3, IdentityZoneHolder.get().getId());
-        verify(spy, times(0)).addMember("g1", m4, IdentityZoneHolder.get().getId());
-        verify(spy).removeMemberById("g1", "m1", IdentityZoneHolder.get().getId());
+        verify(spy).updateMember("g1", g2, zoneId);
+        verify(spy).addMember("g1", m3, zoneId);
+        verify(spy, times(0)).updateMember("g1", m4, zoneId);
+        verify(spy, times(0)).addMember("g1", m4, zoneId);
+        verify(spy).removeMemberById("g1", "m1", zoneId);
         assertEquals(3, members.size());
         assertTrue(members.contains(new ScimGroupMember("g2", ScimGroupMember.Type.GROUP, null)));
         assertTrue(members.contains(new ScimGroupMember("m3", ScimGroupMember.Type.USER, null)));
