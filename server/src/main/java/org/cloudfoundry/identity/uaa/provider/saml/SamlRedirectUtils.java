@@ -44,21 +44,19 @@ public class SamlRedirectUtils {
     }
 
     public static String getZonifiedEntityId(String entityID) {
-        String url = null;
         try{
-            if(!IdentityZoneHolder.isUaa()) {
-               url = IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID();
-               if(url != null) {
-                   return url;
-               }
+            if (!IdentityZoneHolder.isUaa()) {
+                String url = IdentityZoneHolder.get().getConfig().getSamlConfig().getEntityID();
+                if (url != null) {
+                    return url;
+                }
             }
-        } catch(Exception e) {
-            url = null;
-        }
+        } catch (Exception ignored) {}
+
         if (UaaUrlUtils.isUrl(entityID)) {
             return UaaUrlUtils.addSubdomainToUrl(entityID);
         } else {
-            return UaaUrlUtils.getSubdomain()+entityID;
+            return UaaUrlUtils.getSubdomain() + entityID;
         }
     }
 

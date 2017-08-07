@@ -55,7 +55,7 @@ import static org.mockito.Mockito.mock;
 
 public class ZoneAwareMetadataGeneratorTests {
 
-    public static final String ZONE_ID = "zone-id";
+    private static final String ZONE_ID = "zone-id";
     private ZoneAwareMetadataGenerator generator;
     private IdentityZone otherZone;
     private IdentityZoneConfiguration otherZoneDefinition;
@@ -235,7 +235,7 @@ public class ZoneAwareMetadataGeneratorTests {
         assertThat(signingVerificationCerts, contains(cert2Plain));
     }
 
-    public List<String> getCertificates(String metadata, String type) throws Exception {
+    private List<String> getCertificates(String metadata, String type) throws Exception {
         return SamlTestUtils.getCertificates(metadata, type);
     }
 
