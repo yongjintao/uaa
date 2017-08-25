@@ -47,12 +47,14 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
