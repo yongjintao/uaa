@@ -88,6 +88,9 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
         }
+        if(idpDefinitionMap.get("override") instanceof Boolean) {
+            idpDefinition.setOverride((boolean)idpDefinitionMap.get("override"));
+        }
         if (idpDefinitionMap.get("clientAuthInBody") instanceof Boolean) {
             idpDefinition.setClientAuthInBody((boolean)idpDefinitionMap.get("clientAuthInBody"));
         }

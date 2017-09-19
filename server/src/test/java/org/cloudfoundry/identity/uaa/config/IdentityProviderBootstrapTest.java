@@ -23,11 +23,11 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -36,7 +36,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -46,6 +48,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -61,7 +64,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class IdentityProviderBootstrapTest extends JdbcTestBase {
@@ -588,5 +594,52 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         IdentityProvider internalIdp =  provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(internalIdp.isActive());
+    }
+
+    @Test
+    public void oauthProviderIfAlreadyPresentAndOverrideDisabled() throws Exception {
+        AbstractXOAuthIdentityProviderDefinition oauthProvider = new RawXOAuthIdentityProviderDefinition();
+        setCommonProperties(oauthProvider);
+        oauthProvider.setOverride(false);
+        IdentityProviderProvisioning provisioning = mock(JdbcIdentityProviderProvisioning.class);
+        when(provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId())).thenReturn(new IdentityProvider().setOriginKey(OriginKeys.UAA));
+        when(provisioning.retrieveByOrigin(OriginKeys.OAUTH20, IdentityZone.getUaa().getId())).thenReturn(new IdentityProvider().setConfig(oauthProvider));
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.put(OAUTH20, oauthProvider);
+        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+
+        bootstrap.afterPropertiesSet();
+
+        ArgumentCaptor providerArgumentCaptor = ArgumentCaptor.forClass(JdbcIdentityProviderProvisioning.class);
+        verify(provisioning, times(0)).create(any(IdentityProvider.class));
+        verify(provisioning, times(1)).update((IdentityProvider) providerArgumentCaptor.capture());
+        assertEquals(1, providerArgumentCaptor.getAllValues().size());
+        assertEquals(OriginKeys.UAA, ((IdentityProvider)providerArgumentCaptor.getValue()).getOriginKey());
+    }
+
+    @Test
+    public void oauthProviderIfAlreadyPresentAndOverrideEnabled() throws Exception {
+        AbstractXOAuthIdentityProviderDefinition oauthProvider = new RawXOAuthIdentityProviderDefinition();
+        setCommonProperties(oauthProvider);
+        oauthProvider.setOverride(true);
+        IdentityProviderProvisioning provisioning = mock(JdbcIdentityProviderProvisioning.class);
+        when(provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId())).thenReturn(new IdentityProvider().setOriginKey(OriginKeys.UAA));
+        IdentityProvider mockExisting = new IdentityProvider().setConfig(oauthProvider);
+        mockExisting.setId(new RandomValueStringGenerator(5).generate());
+        when(provisioning.retrieveByOrigin(OriginKeys.OAUTH20, IdentityZone.getUaa().getId())).thenReturn(mockExisting);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.put(OAUTH20, oauthProvider);
+        bootstrap.setOauthIdpDefinitions(oauthProviderConfig);
+
+        bootstrap.afterPropertiesSet();
+
+        ArgumentCaptor providerArgumentCaptor = ArgumentCaptor.forClass(JdbcIdentityProviderProvisioning.class);
+        verify(provisioning, times(0)).create(any(IdentityProvider.class));
+        verify(provisioning, times(2)).update((IdentityProvider) providerArgumentCaptor.capture());
+        List<IdentityProvider> oauthIdentityProviders = ((List<IdentityProvider>)providerArgumentCaptor.getAllValues()).stream().filter(provider -> provider.getOriginKey() == OriginKeys.OAUTH20).collect(Collectors.toList());
+        assertEquals(1, oauthIdentityProviders.size());
+        assertEquals(mockExisting.getId(), oauthIdentityProviders.get(0).getId());
     }
 }

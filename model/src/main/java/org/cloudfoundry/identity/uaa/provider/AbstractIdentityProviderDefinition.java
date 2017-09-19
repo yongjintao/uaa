@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
@@ -27,6 +28,8 @@ public class AbstractIdentityProviderDefinition {
     private List<String> emailDomain;
     private Map<String,Object> additionalConfiguration;
     private String providerDescription;
+    @JsonIgnore
+    private boolean override = true;
 
     public List<String> getEmailDomain() {
         return emailDomain;
@@ -52,6 +55,14 @@ public class AbstractIdentityProviderDefinition {
 
     public void setProviderDescription(String description) {
         this.providerDescription = description;
+    }
+
+    public boolean isOverride() {
+        return override;
+    }
+
+    public void setOverride(boolean override) {
+        this.override = override;
     }
 
     @Override

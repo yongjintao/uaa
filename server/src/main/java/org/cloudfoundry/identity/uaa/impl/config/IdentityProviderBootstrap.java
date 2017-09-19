@@ -222,7 +222,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setIdentityZoneId(zoneId);
             if (existing==null) {
                 provisioning.create(provider);
-            } else {
+            } else if(provider.getConfig() != null && provider.getConfig().isOverride()){
                 provider.setId(existing.getId());
                 provider.setCreated(existing.getCreated());
                 provider.setVersion(existing.getVersion());

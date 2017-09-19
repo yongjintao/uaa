@@ -46,6 +46,18 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
+    public void test_default_behavior_for_override_flag_in_manifest() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(providerDefinition.isOverride());
+    }
+
+    @Test
+    public void test_override_flag_in_manifest() {
+        idpDefinitionMap.put("override", false);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertFalse(providerDefinition.isOverride());
+    }
+    @Test
     public void as_configured() throws Exception {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertFalse(providerDefinition.isClientAuthInBody());
