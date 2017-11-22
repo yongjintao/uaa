@@ -85,6 +85,7 @@ public class AuthzAuthenticationManagerTests {
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private String loginServerUserName="loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;
+    private ApplicationEventPublisher eventPublisher;
 
     @Rule
     public final ExpectedException exception = ExpectedException.none();
@@ -94,9 +95,9 @@ public class AuthzAuthenticationManagerTests {
     public void setUp() throws Exception {
         user = new UaaUser(getPrototype());
         providerProvisioning = mock(IdentityProviderProvisioning.class);
+        eventPublisher = mock(ApplicationEventPublisher.class);
         db = mock(UaaUserDatabase.class);
 
-        publisher = mock(ApplicationEventPublisher.class);
         eventCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         doNothing().when(publisher).publishEvent(eventCaptor.capture());
 
@@ -349,6 +350,7 @@ public class AuthzAuthenticationManagerTests {
 
         exception.expect(MfaAuthenticationRequiredException.class);
         Authentication authentication = mgr.authenticate(createAuthRequest("auser", "password"));
+        verify(publisher, times(0)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
     }
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {
         Map<String, String> userdata = new HashMap<String, String>();

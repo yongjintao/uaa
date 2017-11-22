@@ -26,6 +26,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_AUTH;
 import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
@@ -45,7 +46,8 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
                 return;
             }
             if (exception instanceof MfaAuthenticationRequiredException) {
-                request.getSession().setAttribute(MFA_VALIDATE_USER, ((MfaAuthenticationRequiredException) exception).getAuthentication());
+                request.getSession().setAttribute(MFA_VALIDATE_AUTH, ((MfaAuthenticationRequiredException) exception).getAuthentication());
+                request.getSession().setAttribute(MFA_VALIDATE_USER, ((MfaAuthenticationRequiredException) exception).getUser());
                 addCookie(response, request.getContextPath());
                 response.sendRedirect(request.getContextPath() + "/login/mfa/register");
                 return;

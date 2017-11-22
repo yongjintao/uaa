@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -31,6 +32,7 @@ import javax.servlet.http.Cookie;
 import java.io.IOException;
 
 import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
+import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_AUTH;
 import static org.cloudfoundry.identity.uaa.login.TotpEndpoint.MFA_VALIDATE_USER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -94,11 +96,15 @@ public class UaaAuthenticationFailureHandlerTests {
     public void testExceptionThrownWhenMFARequired() throws Exception {
         MfaAuthenticationRequiredException exception = mock(MfaAuthenticationRequiredException.class);
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        UaaUser uaaUser = mock(UaaUser.class);
         when(exception.getAuthentication()).thenReturn(uaaAuthentication);
+        when(exception.getUser()).thenReturn(uaaUser);
         uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
 
+        assertNotNull(request.getSession().getAttribute(MFA_VALIDATE_AUTH));
         assertNotNull(request.getSession().getAttribute(MFA_VALIDATE_USER));
-        assertEquals(uaaAuthentication, request.getSession().getAttribute(MFA_VALIDATE_USER));
+        assertEquals(uaaAuthentication, request.getSession().getAttribute(MFA_VALIDATE_AUTH));
+        assertEquals(uaaUser, request.getSession().getAttribute(MFA_VALIDATE_USER));
         assertEquals("/login/mfa/register", response.getRedirectedUrl());
     }
 

@@ -129,7 +129,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 }
 
                 if(IdentityZoneHolder.get().getConfig().getMfaConfig().isEnabled()) {
-                    throw new MfaAuthenticationRequiredException(success, "Mfa authentication required");
+                    throw new MfaAuthenticationRequiredException(success, user, "Mfa authentication required");
                 }
 
                 publish(new UserAuthenticationSuccessEvent(user, success));
