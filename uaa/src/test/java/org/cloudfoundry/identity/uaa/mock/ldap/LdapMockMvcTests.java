@@ -16,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.DefaultConfigurationTestSuite;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -37,6 +39,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.hamcrest.Matcher;
 import org.hamcrest.core.StringContains;
@@ -941,6 +944,33 @@ public class LdapMockMvcTests  {
 
     }
 
+    @Test
+    public void testLdapAuthenticationWithMfa() throws Exception {
+        String zoneId = zone.getZone().getIdentityZone().getId();
+        // create mfa provider
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
+        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
+        mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
+        mfaProvider.setIdentityZoneId(zone.getZone().getIdentityZone().getId());
+        mfaProvider.setConfig(new GoogleMfaProviderConfig());
+        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
+                post("/mfa-providers")
+                        .header("Authorization", "Bearer " + zone.getZone().getZoneAdminToken())
+                        .header("X-Identity-Zone-Id", zoneId)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(mfaProvider)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse().getContentAsByteArray(), MfaProvider.class);
+
+//        zone.getZone().getIdentityZone().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
+
+        MockMvcUtils.updateIdentityZone(zone.getZone().getIdentityZone(), getWebApplicationContext());
+
+        performUiAuthenticationInZone("marissa7", "ldap7", zoneId);
+//        testSuccessfulLogin();
+    }
+
     protected void testSuccessfulLogin() throws Exception {
         getMockMvc().perform(post("/login.do").accept(TEXT_HTML_VALUE)
                                  .header(HOST, host)
@@ -1210,6 +1240,20 @@ public class LdapMockMvcTests  {
             .andReturn();
     }
 
+    private MvcResult performUiAuthenticationInZone(String username, String password, String zoneId) throws Exception {
+        MockHttpServletRequestBuilder post =
+                post("/login.do")
+                        .with(cookieCsrf())
+                        .header(HOST, host)
+                        .accept(MediaType.TEXT_HTML)
+                        .param("username", username)
+                        .param("password", password);
+
+        return getMockMvc().perform(post)
+                .andExpect(status().is(HttpStatus.FOUND.value()))
+                .andExpect(redirectedUrl("/login/mfa/register"))
+                .andReturn();
+    }
 
     @Test
     public void testLdapScopes() throws Exception {
