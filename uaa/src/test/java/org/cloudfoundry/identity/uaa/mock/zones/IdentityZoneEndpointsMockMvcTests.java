@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -74,6 +75,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.createGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
@@ -1893,7 +1895,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void createZoneWithMfaConfigIsNotSupported() throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(null);
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(adminToken, getMockMvc());
         String zoneId = new RandomValueStringGenerator(5).generate();
         String zoneContent = "{\"id\" : \""+zoneId+"\", \"name\" : \""+zoneId+"\", \"subdomain\" : \""+zoneId+"\", \"config\" : { \"mfaConfig\" : {\"enabled\" : true, \"providerName\" : \""+mfaProvider.getName()+"\"}}}";
         MockHttpServletResponse response = getMockMvc().perform(post("/identity-zones")
@@ -1907,7 +1909,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void updateZoneWithValidMfaConfig() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId(), adminToken, getMockMvc());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderName(mfaProvider.getName()));
 
         IdentityZone updatedZone = updateZone(identityZone, HttpStatus.OK, adminToken);
@@ -1919,7 +1921,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void updateZoneWithValidMfaConfigWithoutIdInBody_Succeeds() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
+        MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId(), adminToken, getMockMvc());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
         String id = identityZone.getId();
         identityZone.setId(null);
@@ -1946,20 +1948,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         identityZone.getConfig().setMfaConfig(new MfaConfig().setProviderName("INVALID_NAME"));
 
         updateZone(identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
-    }
-
-    private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
-        MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider));
-        if(hasText(zoneId)){
-            createMfaRequest.header("X-Identity-Zone-Id", zoneId);
-        }
-        MockHttpServletResponse mfaProviderResponse = getMockMvc().perform(createMfaRequest).andReturn().getResponse();
-        mfaProvider = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
-        return mfaProvider;
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {

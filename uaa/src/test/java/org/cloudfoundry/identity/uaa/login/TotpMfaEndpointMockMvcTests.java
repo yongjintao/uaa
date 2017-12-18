@@ -15,14 +15,13 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -79,19 +78,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("jdbcUserGoogleMfaCredentialsProvisioning");
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
 
-        mfaProvider = new MfaProvider();
-        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
-        mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        mfaProvider.setIdentityZoneId("uaa");
-        mfaProvider.setConfig(new GoogleMfaProviderConfig());
-        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
-                post("/mfa-providers")
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider)))
-            .andExpect(status().isCreated())
-            .andReturn()
-            .getResponse().getContentAsByteArray(), MfaProvider.class);
+        mfaProvider = MfaUtilsMockMVC.createGoogleMfaProvider(adminToken ,getMockMvc());
 
         otherMfaProvider = new MfaProvider();
         otherMfaProvider.setName(new RandomValueStringGenerator(5).generate());
