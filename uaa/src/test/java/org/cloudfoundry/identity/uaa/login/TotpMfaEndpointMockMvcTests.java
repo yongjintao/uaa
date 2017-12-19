@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
@@ -26,9 +25,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -45,12 +42,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.createGoogleMfaProvider;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.disableMfaProviderInZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.enableMfaProviderInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -63,7 +62,6 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
     private String adminToken;
     private JdbcUserGoogleMfaCredentialsProvisioning jdbcUserGoogleMfaCredentialsProvisioning;
-    private IdentityZoneConfiguration uaaZoneConfig;
     private MfaProvider mfaProvider;
     private MfaProvider otherMfaProvider;
     private String password;
@@ -78,26 +76,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         jdbcUserGoogleMfaCredentialsProvisioning = (JdbcUserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("jdbcUserGoogleMfaCredentialsProvisioning");
         userGoogleMfaCredentialsProvisioning = (UserGoogleMfaCredentialsProvisioning) getWebApplicationContext().getBean("userGoogleMfaCredentialsProvisioning");
 
-        mfaProvider = MfaUtilsMockMVC.createGoogleMfaProvider(adminToken ,getMockMvc());
+        mfaProvider = createGoogleMfaProvider(adminToken ,getMockMvc());
 
-        otherMfaProvider = new MfaProvider();
-        otherMfaProvider.setName(new RandomValueStringGenerator(5).generate());
-        otherMfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        otherMfaProvider.setIdentityZoneId("uaa");
-        otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
-        otherMfaProvider = JsonUtils.readValue(getMockMvc().perform(
-            post("/mfa-providers")
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(otherMfaProvider)))
-            .andExpect(status().isCreated())
-            .andReturn()
-            .getResponse().getContentAsByteArray(), MfaProvider.class);
+        otherMfaProvider = createGoogleMfaProvider(adminToken ,getMockMvc());
 
-
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
-        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+        enableMfaProviderInZone("uaa", mfaProvider.getName());
 
         user = createUser();
         session = new MockHttpSession();
@@ -105,8 +88,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
     @After
     public void cleanup () throws Exception {
-        uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+        disableMfaProviderInZone("uaa");
     }
 
     @Test
@@ -247,9 +229,11 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
 
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
-        uaaZoneConfig.getMfaConfig().setProviderName(otherMfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+//        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
+//        uaaZoneConfig.getMfaConfig().setProviderName(otherMfaProvider.getName());
+//        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
+
+        enableMfaProviderInZone("uaa", otherMfaProvider.getName());
 
         session = new MockHttpSession();
         performLoginWithSession();

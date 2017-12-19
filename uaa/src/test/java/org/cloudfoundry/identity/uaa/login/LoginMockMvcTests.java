@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -105,7 +106,6 @@ import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
@@ -191,18 +191,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext(), false);
 
-        MfaProvider mfaProvider = constructGoogleMfaProvider();
-        mfaProvider = JsonUtils.readValue(getMockMvc().perform(
-            post("/mfa-providers")
-                .header("X-Identity-Zone-Id", identityZone.getId())
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider)))
-            .andExpect(status().isCreated())
-            .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
-
-        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.updateIdentityZone(identityZone, getWebApplicationContext());
+        MfaProvider mfaProvider = MfaUtilsMockMVC.createGoogleMfaProvider(identityZone.getId(), adminToken, getMockMvc());
+        MfaUtilsMockMVC.enableMfaProviderInZone(identityZone.getId(), mfaProvider.getName());
     }
 
     @After

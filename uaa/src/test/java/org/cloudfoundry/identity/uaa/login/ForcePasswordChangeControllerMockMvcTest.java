@@ -198,9 +198,6 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                 .andExpect(redirectedUrl("http://localhost/"));
             assertTrue(getUaaAuthentication(session).isAuthenticated());
             assertFalse(getUaaAuthentication(session).isRequiresPasswordChange());
-
-
-
         } finally {
             identityProvider.setConfig(currentConfig);
             identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
