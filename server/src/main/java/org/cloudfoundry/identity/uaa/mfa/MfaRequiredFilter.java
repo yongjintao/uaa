@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.mfa;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -43,6 +44,7 @@ public class MfaRequiredFilter extends GenericFilterBean {
     private final AntPathRequestMatcher completedMatcher;
     private final String redirect;
     private final RequestCache cache;
+    private PasswordChangeRequiredFilter passwordChangeRequiredFilter;
 
     public MfaRequiredFilter(String urlFilter,
                              String redirect,
@@ -64,11 +66,13 @@ public class MfaRequiredFilter extends GenericFilterBean {
                 logger.debug("Unrecognized authentication object:" + getAuthenticationLogInfo());
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid authentication object for UI operations.");
                 break;
-            case NOT_AUTHENTICATED:
             case MFA_IN_PROGRESS:
+                chain.doFilter(request, response);
+                break;
+            case NOT_AUTHENTICATED:
             case MFA_NOT_REQUIRED:
             case MFA_OK:
-                chain.doFilter(request, response);
+                passwordChangeRequiredFilter.doFilter(request, response, chain);
                 break;
             case MFA_REQUIRED:
                 logger.debug("Request requires MFA, redirecting to MFA flow for " + getAuthenticationLogInfo());
@@ -155,6 +159,10 @@ public class MfaRequiredFilter extends GenericFilterBean {
         );
         url.append(redirectUrl);
         response.sendRedirect(url.toString());
+    }
+
+    public void setPasswordChangeRequiredFilter(PasswordChangeRequiredFilter passwordChangeRequiredFilter) {
+        this.passwordChangeRequiredFilter = passwordChangeRequiredFilter;
     }
 
     protected boolean mfaRequired() {

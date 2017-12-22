@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -228,10 +227,6 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
         assertNotNull(activeCreds);
         assertEquals(mfaProvider.getId(), activeCreds.getMfaProviderId());
         getMockMvc().perform(get("/logout.do")).andReturn();
-
-//        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(getWebApplicationContext(), "uaa");
-//        uaaZoneConfig.getMfaConfig().setProviderName(otherMfaProvider.getName());
-//        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), "uaa", uaaZoneConfig);
 
         enableMfaProviderInZone("uaa", otherMfaProvider.getName());
 

@@ -219,6 +219,7 @@
         <constructor-arg name="redirect" value="/login/mfa/register"/>
         <constructor-arg name="cache" ref="clientRedirectStateCache"/>
         <constructor-arg name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
+        <property name="passwordChangeRequiredFilter" ref="passwordChangeRequiredFilter"/>
     </bean>
 
     <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless"
@@ -294,7 +295,6 @@
                     authentication-details-source-ref="authenticationDetailsSource"
                     default-target-url="/"/>
         <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
-        <custom-filter ref="passwordChangeRequiredFilter" after="CSRF_FILTER"/>
         <custom-filter ref="mfaRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
         <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
