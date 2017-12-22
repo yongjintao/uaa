@@ -44,6 +44,8 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.createGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.disableMfaProviderInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.enableMfaProviderInZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.getMFACodeFromSession;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.performMfaPostVerifyWithCode;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -107,9 +109,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(user.getId(), mfaProvider.getId()));
 
-        int code = MockMvcUtils.getMFACodeFromSession(session);
+        int code = getMFACodeFromSession(session);
 
-        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        String location = performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         getMockMvc().perform(get(location)
                 .session(session))
@@ -118,7 +120,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         session = new MockHttpSession();
         performLoginWithSession();
-        MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        performMfaPostVerifyWithCode(code, getMockMvc(), session);
     }
 
     @Test
@@ -154,8 +156,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaRegister();
 
-        int code = MockMvcUtils.getMFACodeFromSession(session);
-        MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        int code = getMFACodeFromSession(session);
+        performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         getMockMvc().perform(get("/login/mfa/completed")
                                  .session(session)
@@ -181,9 +183,8 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
-        int code = MockMvcUtils.getMFACodeFromSession(session);
-
-        MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        int code = getMFACodeFromSession(session);
+        performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         UserGoogleMfaCredentials activeCreds = jdbcUserGoogleMfaCredentialsProvisioning.retrieve(user.getId(), mfaProvider.getId());
         assertNotNull(activeCreds);
@@ -203,9 +204,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
-        int code = MockMvcUtils.getMFACodeFromSession(session);
+        int code = getMFACodeFromSession(session);
 
-        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        String location = performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
 
         location = getMockMvc().perform(
@@ -235,9 +236,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaRegister().andExpect(view().name("mfa/qr_code"));
 
-        code = MockMvcUtils.getMFACodeFromSession(session);
+        code = getMFACodeFromSession(session);
 
-        location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        location = performMfaPostVerifyWithCode(code, getMockMvc(), session);
 
         location = getMockMvc().perform(
             get(location)
@@ -274,9 +275,9 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         performGetMfaManualRegister().andExpect((view().name("mfa/manual_registration")));
 
-        int code = MockMvcUtils.getMFACodeFromSession(session);
+        int code = getMFACodeFromSession(session);
 
-        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        String location = performMfaPostVerifyWithCode(code, getMockMvc(), session);
         assertEquals("/login/mfa/completed", location);
 
         getMockMvc().perform(get("/")
@@ -288,7 +289,7 @@ public class TotpMfaEndpointMockMvcTests extends InjectedMockContextTest{
 
         session = new MockHttpSession();
         performLoginWithSession();
-        MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session);
+        performMfaPostVerifyWithCode(code, getMockMvc(), session);
     }
 
     @Test

@@ -93,6 +93,8 @@ import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.getMFACodeFromSession;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.performMfaPostVerifyWithCode;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.NONE;
@@ -123,7 +125,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -1000,8 +1001,8 @@ public class LdapMockMvcTests  {
             .andExpect(view().name("mfa/qr_code"));
 
         //post MFA code
-        int code = MockMvcUtils.getMFACodeFromSession(session);
-        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, getMockMvc(), session, host);
+        int code = getMFACodeFromSession(session);
+        String location = performMfaPostVerifyWithCode(code, getMockMvc(), session, host);
         //follow redirect to completed
         location = getMockMvc().perform(get(location)
             .session(session)

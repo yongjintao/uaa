@@ -1,7 +1,10 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.springframework.http.HttpStatus;
@@ -49,8 +52,13 @@ public class MfaUtilsMockMVC {
         return createGoogleMfaProvider("uaa", adminToken, mockMvc);
     }
 
+
+    public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session) throws Exception {
+        return MfaUtilsMockMVC.performMfaPostVerifyWithCode(code, mvc, session, "localhost");
+    }
+
     public static String performMfaPostVerifyWithCode(MockMvc mvc, MockHttpSession session) throws Exception {
-        int code = MockMvcUtils.getMFACodeFromSession(session);
+        int code = getMFACodeFromSession(session);
         return performMfaPostVerifyWithCode(code, mvc, session, "localhost");
     }
 
@@ -63,5 +71,11 @@ public class MfaUtilsMockMVC {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("/login/mfa/completed"))
                 .andReturn().getResponse().getRedirectedUrl();
+    }
+
+    public static int getMFACodeFromSession(MockHttpSession session) {
+        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
+        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
+        return authenticator.getTotpPassword(activeCreds.getSecretKey());
     }
 }

@@ -34,6 +34,7 @@ import java.util.Date;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.createGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.disableMfaProviderInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.enableMfaProviderInZone;
+import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.getMFACodeFromSession;
 import static org.cloudfoundry.identity.uaa.mock.util.MfaUtilsMockMVC.performMfaPostVerifyWithCode;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.junit.Assert.assertEquals;
@@ -215,7 +216,7 @@ public class ForcePasswordChangeControllerMockMvcTest extends InjectedMockContex
                     .andExpect(status().isOk())
                     .andExpect(content().string(Matchers.containsString("Setup Multifactor Authentication")));
 
-            int code = MockMvcUtils.getMFACodeFromSession(session);
+            int code = getMFACodeFromSession(session);
             String redirectAfterMfa = performMfaPostVerifyWithCode(code, getMockMvc(), session, "localhost");
 
             assertEquals("/login/mfa/completed", redirectAfterMfa);

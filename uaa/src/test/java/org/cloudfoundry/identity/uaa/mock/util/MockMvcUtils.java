@@ -169,28 +169,6 @@ public final class MockMvcUtils {
         "  </md:ContactPerson>\n" +
         "</md:EntityDescriptor>";
 
-
-    public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session) throws Exception {
-        return performMfaPostVerifyWithCode(code, mvc, session, "localhost");
-    }
-
-    public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session, String host) throws Exception {
-        return mvc.perform(post("/login/mfa/verify.do")
-            .param("code", Integer.toString(code))
-            .header("Host", host)
-            .session(session)
-            .with(cookieCsrf()))
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/login/mfa/completed"))
-            .andReturn().getResponse().getRedirectedUrl();
-    }
-
-    public static int getMFACodeFromSession(MockHttpSession session) {
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("SESSION_USER_GOOGLE_MFA_CREDENTIALS");
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        return authenticator.getTotpPassword(activeCreds.getSecretKey());
-    }
-
     public static MockMvcUtils utils() {
         // this is all static now
         // TODO: replace calls to this method with static references
