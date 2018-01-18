@@ -12,21 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import javax.servlet.http.HttpSession;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -57,8 +43,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
-
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -91,6 +75,21 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
+
+import javax.servlet.http.HttpSession;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -1040,6 +1039,7 @@ public class LdapMockMvcTests  {
 
     @Test
     public void testAuthenticateFailure() throws Exception {
+        // TODO check for failure event
         String username = "marissa3";
         String password = "ldapsadadasas";
         MockHttpServletRequestBuilder post =

@@ -16,6 +16,12 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.ldap.NameNotFoundException;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.ldap.core.support.BaseLdapPathContextSource;
@@ -41,12 +47,13 @@ import java.util.Arrays;
  * by the initial user search.
  */
 
-public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
+public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator implements ApplicationEventPublisherAware {
     private static final Log logger = LogFactory.getLog(PasswordComparisonAuthenticator.class);
 
     private boolean localCompare;
     private String passwordAttributeName;
     private PasswordEncoder passwordEncoder = new LdapShaPasswordEncoder();
+    private ApplicationEventPublisher eventPublisher;
 
     public PasswordComparisonAuthenticator(BaseLdapPathContextSource contextSource) {
         super(contextSource);
@@ -83,12 +90,18 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
                             user.getDn() + "'");
         }
 
-        if (isLocalCompare()) {
-            localCompareAuthenticate(user, password);
-        } else {
-            String encodedPassword = passwordEncoder.encodePassword(password, null);
-            byte[] passwordBytes = Utf8.encode(encodedPassword);
-            searchAuthenticate(user, passwordBytes, ldapTemplate);
+        try {
+            if (isLocalCompare()) {
+                localCompareAuthenticate(user, password);
+            } else {
+                String encodedPassword = passwordEncoder.encodePassword(password, null);
+                byte[] passwordBytes = Utf8.encode(encodedPassword);
+                searchAuthenticate(user, passwordBytes, ldapTemplate);
+            }
+        } catch (BadCredentialsException e) {
+            UaaUser uaaUser = new UaaUser(new UaaUserPrototype().withUsername(username).withEmail(username).withId(username));
+            publish(new IdentityProviderAuthenticationFailureEvent(uaaUser, authentication));
+            throw e;
         }
 
         return user;
@@ -164,4 +177,14 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         this.localCompare = localCompare;
     }
 
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
+    }
+
+    private void publish(ApplicationEvent event) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(event);
+        }
+    }
 }
