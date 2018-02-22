@@ -459,12 +459,14 @@ public class LoginInfoEndpoint {
 
         populatePrompts(model, excludedPrompts);
 
+        String formRedirectUri = request.getParameter(FORM_REDIRECT_PARAMETER);
+        if (hasText(formRedirectUri)) {
+            model.addAttribute(FORM_REDIRECT_PARAMETER, formRedirectUri);
+        }
+
         if (principal == null) {
 
-            String formRedirectUri = request.getParameter(FORM_REDIRECT_PARAMETER);
-            if (hasText(formRedirectUri)) {
-                model.addAttribute(FORM_REDIRECT_PARAMETER, formRedirectUri);
-            }
+
 
             boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
             boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();

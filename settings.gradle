@@ -7,6 +7,7 @@ include ':cloudfoundry-identity-statsd'
 include ':cloudfoundry-identity-uaa'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-api'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-app'
+include ':cloudfoundry-identity-samples:cloudfoundry-identity-app2'
 include ':cloudfoundry-identity-samples'
 
 project(':cloudfoundry-identity-metrics-data').projectDir = "$rootDir/metrics-data" as File
@@ -17,4 +18,5 @@ project(':cloudfoundry-identity-uaa').projectDir = "$rootDir/uaa" as File
 project(':cloudfoundry-identity-statsd').projectDir = "$rootDir/statsd" as File
 project(':cloudfoundry-identity-samples:cloudfoundry-identity-api').projectDir = "$rootDir/samples/api" as File
 project(':cloudfoundry-identity-samples:cloudfoundry-identity-app').projectDir = "$rootDir/samples/app" as File
+project(':cloudfoundry-identity-samples:cloudfoundry-identity-app2').projectDir = "$rootDir/samples/app2" as File
 project(':cloudfoundry-identity-samples').projectDir = "$rootDir/samples" as File

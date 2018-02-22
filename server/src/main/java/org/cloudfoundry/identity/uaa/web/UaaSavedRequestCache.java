@@ -16,16 +16,6 @@
 package org.cloudfoundry.identity.uaa.web;
 
 
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.PortResolver;
-import org.springframework.security.web.savedrequest.DefaultSavedRequest;
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.security.web.util.UrlUtils;
-import org.springframework.util.StringUtils;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -42,6 +32,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.PortResolver;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
+import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.web.util.UrlUtils;
+import org.springframework.util.StringUtils;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -86,27 +86,20 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
     protected boolean shouldSaveFormRedirectParameter(HttpServletRequest request) {
         String formRedirect = request.getParameter(FORM_REDIRECT_PARAMETER);
-        if (!HttpMethod.POST.name().equals(request.getMethod())) {
-            return false;
-        }
         if (StringUtils.isEmpty(formRedirect)) {
             return false;
         }
-
-        if (hasSavedRequest(request)) {
-            return false;
-        }
-
-        return POST.name().equals(request.getMethod());
-    }
-
-    protected static boolean hasSavedRequest(HttpServletRequest request) {
-        return getSavedRequest(request) !=null;
+        return true;
     }
 
     protected static SavedRequest getSavedRequest(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        return session==null ? null : (SavedRequest)session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        String formRedirect = request.getParameter(FORM_REDIRECT_PARAMETER);
+        if (StringUtils.isEmpty(formRedirect)) {
+            HttpSession session = request.getSession(false);
+            return session == null ? null : (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        } else {
+            return new ClientRedirectSavedRequest(request, formRedirect);
+        }
     }
 
     @Override

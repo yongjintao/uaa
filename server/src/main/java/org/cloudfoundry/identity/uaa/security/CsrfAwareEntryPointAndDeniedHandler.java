@@ -14,9 +14,17 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.net.URISyntaxException;
+
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.apache.http.client.utils.URIBuilder;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -31,10 +39,7 @@ import org.springframework.security.web.csrf.InvalidCsrfTokenException;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.util.StringUtils;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 
 
 public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler, AuthenticationEntryPoint {
@@ -56,7 +61,36 @@ public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler,
             throw new NullPointerException("Invalid login redirect URL, must start with '/'");
         }
         loginEntryPoint = new LoginUrlAuthenticationEntryPoint(login);
-        notloggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn);
+        notloggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn) {
+
+            @Override
+            protected String buildRedirectUrlToLoginPage(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) {
+                String url = super.buildRedirectUrlToLoginPage(request, response, authException);
+                url = appendFormRedirectParameter(request, url);
+                return url;
+            }
+
+            @Override
+            protected String buildHttpsRedirectUrlForRequest(HttpServletRequest request)
+                throws IOException, ServletException {
+                String url = super.buildHttpsRedirectUrlForRequest(request);
+                url = appendFormRedirectParameter(request, url);
+                return url;
+            }
+
+            private String appendFormRedirectParameter(HttpServletRequest request, String url) {
+                if (request.getParameter(FORM_REDIRECT_PARAMETER)!=null) {
+                    try {
+                        URIBuilder builder = new URIBuilder(url);
+                        builder.addParameter(FORM_REDIRECT_PARAMETER, request.getParameter(FORM_REDIRECT_PARAMETER));
+                        url = builder.build().toString();
+                    } catch (URISyntaxException e) {
+                        logger.warn("Unable to parse redirect URI. Defaulting to " + url, e);
+                    }
+                }
+                return url;
+            }
+        };
         loggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectCsrf)
         {
             @Override
