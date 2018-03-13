@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -38,10 +40,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * 
  */
 public class JdbcPagingList<E> extends AbstractList<E> {
+    private final Log logger = LogFactory.getLog(getClass());
 
     private final int size;
 
     private int start = 0;
+    private int offset;
 
     private List<E> current;
 
@@ -78,13 +82,20 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         this.limitSqlAdapter = limitSqlAdapter;
     }
 
+    public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql, Map<String, ?> args, RowMapper<E> columnMapRowMapper, int offset, int pageSize) {
+        this(jdbcTemplate, limitSqlAdapter, sql, args, columnMapRowMapper, pageSize);
+        this.offset = offset;
+    }
+
     @Override
     public E get(int index) {
         if (index >= size) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
         if (current == null || index - start >= pageSize || index < start) {
-            current = parameterJdbcTemplate.query(limitSqlAdapter.getLimitSql(sql, index, pageSize), args, mapper);
+            String limitSql = limitSqlAdapter.getLimitSql(sql, index + offset, pageSize);
+            current = parameterJdbcTemplate.query(limitSql, args, mapper);
+            logger.debug("complete pagination sql: " + limitSql);
             start = index;
         }
         return current.get(index - start);

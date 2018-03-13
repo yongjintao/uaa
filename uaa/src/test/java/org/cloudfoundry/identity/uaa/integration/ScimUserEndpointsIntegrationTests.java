@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -40,9 +41,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -490,13 +496,32 @@ public class ScimUserEndpointsIntegrationTests {
 
     @Test
     public void findUsersWithPagination() throws Exception {
+        int usersAdded = 8;
+        for (int i = 0; i < usersAdded; i++) {
+            createUser("JOE_" + new RandomValueStringGenerator().generate().toLowerCase(), "Joe", "User", "joe@blah.com");
+        }
+
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=2&count=3", Map.class);
+        ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint + "?startIndex=1&count=4", Map.class);
         @SuppressWarnings("unchecked")
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        assertEquals(new Integer(2), results.get("startIndex"));
+        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > usersAdded);
+        assertEquals(1, results.get("startIndex"));
+        assertThat((Collection<?>) results.get("resources"), hasSize(4));
+
+        List nextResultSubset = ((List)results.get("resources")).subList(1, 4);
+        assertThat((Collection<?>) nextResultSubset, hasSize(3));
+
+
+        response = serverRunning.getForObject(usersEndpoint + "?startIndex=2&count=4", Map.class);
+        results = response.getBody();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > usersAdded);
+        assertEquals(2, results.get("startIndex"));
+        assertThat((Collection<?>) results.get("resources"), hasSize(4));
+
+        assertThat(nextResultSubset, everyItem(isIn((List)results.get("resources"))));
     }
 
     @Test
@@ -509,5 +534,24 @@ public class ScimUserEndpointsIntegrationTests {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
         assertEquals(new Integer(1), results.get("startIndex"));
+        assertThat((Collection<?>) results.get("resources"), hasSize(greaterThan(0)));
+    }
+
+    @Test
+    @Ignore("This is a slow test ~18 minutes to run.")
+    public void findUsersWithExtremePaginationDoesNotLoadIntoMemoryResultingInOOM() throws Exception {
+        for (int i = 0; i < 10001; i++) {
+            createUser("JOE_" + new RandomValueStringGenerator().generate().toLowerCase(), "Joe", "User", "joe@blah.com");
+        }
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = serverRunning
+            .getForObject(usersEndpoint + "?startIndex=0&count=100", Map.class);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> results = response.getBody();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 10000);
+        assertEquals(new Integer(1), results.get("startIndex"));
+        assertThat((Collection<?>) results.get("resources"), hasSize(100));
     }
 }

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.cloudfoundry.identity.uaa.resources.PaginationQueryable;
 import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.cloudfoundry.identity.uaa.resources.ResourceManager;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -19,7 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
 
-public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
+public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser>, PaginationQueryable<ScimUser> {
 
     ScimUser createUser(ScimUser user, String password, String zoneId) throws InvalidPasswordException, InvalidScimResourceException;
 

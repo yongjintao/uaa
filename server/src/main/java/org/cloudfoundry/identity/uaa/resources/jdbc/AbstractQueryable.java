@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.resources.PaginationQueryable;
 import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -25,7 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public abstract class AbstractQueryable<T> implements Queryable<T> {
+public abstract class AbstractQueryable<T> implements Queryable<T>, PaginationQueryable<T> {
 
     private NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -89,6 +90,32 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
                 result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
             }
             else {
+                result = jdbcTemplate.query(completeSql, where.getParams(), rowMapper);
+            }
+            return result;
+        } catch (DataAccessException e) {
+            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+            throw new IllegalArgumentException("Invalid filter: " + filter);
+        }
+    }
+
+    @Override
+    public List<T> query(String filter, String sortBy, boolean ascending, String zoneId, int offset, int pageSize) {
+        validateOrderBy(queryConverter.map(sortBy));
+        if (StringUtils.hasText(filter)) {
+            filter = "(" + filter + ") and";
+        }
+        filter += " identity_zone_id eq \"" + zoneId + "\"";
+
+        SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending);
+        logger.debug("Filtering groups with SQL: " + where);
+        List<T> result;
+        try {
+            String completeSql = getQuerySQL(filter, where);
+            logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
+            if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
+                result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, offset, pageSize);
+            } else {
                 result = jdbcTemplate.query(completeSql, where.getParams(), rowMapper);
             }
             return result;

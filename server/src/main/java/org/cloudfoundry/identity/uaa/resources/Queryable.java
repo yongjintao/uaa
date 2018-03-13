@@ -19,5 +19,4 @@ public interface Queryable<T> {
     List<T> query(String filter, String zoneId);
 
     List<T> query(String filter, String sortBy, boolean ascending, String zoneId);
-
 }

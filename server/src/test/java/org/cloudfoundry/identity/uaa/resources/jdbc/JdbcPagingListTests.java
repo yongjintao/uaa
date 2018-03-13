@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +21,16 @@ import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 public class JdbcPagingListTests extends JdbcTestBase {
 
@@ -41,6 +46,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
         jdbcTemplate.execute("insert into foo (id, name) values (2, 'baz')");
         jdbcTemplate.execute("insert into foo (id, name) values (3, 'zab')");
         jdbcTemplate.execute("insert into foo (id, name) values (4, 'rab')");
+        jdbcTemplate.execute("insert into foo (id, name) values (5, 'lol')");
 
     }
 
@@ -53,21 +59,44 @@ public class JdbcPagingListTests extends JdbcTestBase {
     public void testIterationOverPages() throws Exception {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
         names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
+    }
+
+    @Test
+    public void testIterationOverPagesFromStartingIndex() throws Exception {
+        list = new JdbcPagingList<Map<String, Object>>(new NamedParameterJdbcTemplate(jdbcTemplate), limitSqlAdapter, "SELECT * from foo",
+            new HashMap(), new ColumnMapRowMapper(), 2, 3);
+
+        assertEquals(6, list.size());
+        Set<String> names = new HashSet<String>();
+        for (Map<String, Object> map : list) {
+            String name = (String) map.get("name");
+            assertNotNull(name);
+            names.add(name);
+        }
+        assertEquals(4, names.size());
+        names = new HashSet<String>();
+        for (Map<String, Object> map : list) {
+            String name = (String) map.get("name");
+            assertNotNull(name);
+            names.add(name);
+        }
+        assertEquals(4, names.size());
+        assertThat(names, CoreMatchers.hasItems("baz", "zab", "rab", "lol"));
     }
 
     @Test
@@ -75,7 +104,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
@@ -89,14 +118,14 @@ public class JdbcPagingListTests extends JdbcTestBase {
     public void testOrderBy() throws Exception {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo order by id asc",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
     }
 
     @Test
@@ -119,6 +148,26 @@ public class JdbcPagingListTests extends JdbcTestBase {
             assertNotNull(map.get("name"));
         }
         assertEquals(3, count);
+    }
+
+    @Test
+    public void testIterationOverSubListWithOffset() throws Exception {
+        list = new JdbcPagingList<Map<String, Object>>(new NamedParameterJdbcTemplate(jdbcTemplate), limitSqlAdapter, "SELECT * from foo order by id asc",
+            new HashMap(), new ColumnMapRowMapper(), 2, 3);
+        assertEquals(6, list.size());
+
+        list = list.subList(1, 4);
+        assertEquals(3, list.size());
+        int count = 0;
+        Set<String> names = new HashSet<>();
+
+        for (Map<String, Object> map : list) {
+            count++;
+            assertNotNull(map.get("name"));
+            names.add((String) map.get("name"));
+        }
+        assertEquals(3, count);
+        assertThat(names, CoreMatchers.hasItems("zab", "rab", "lol"));
     }
 
     @Test
@@ -148,7 +197,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
                         new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
         list = list.subList(1, list.size());
-        assertEquals(4, list.size());
+        assertEquals(5, list.size());
         int count = 0;
         for (Map<String, Object> map : list) {
             count++;
