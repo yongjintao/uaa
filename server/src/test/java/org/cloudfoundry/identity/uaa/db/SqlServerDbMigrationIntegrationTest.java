@@ -34,13 +34,13 @@ public class SqlServerDbMigrationIntegrationTest {
 
     @Before
     public void setup() {
+        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("sqlserver"));
+
         flyway.clean();
     }
 
     @After
     public void cleanup() {
-        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("sqlserver"));
-
         flyway.clean();
     }
 
