@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.login.test.IfProfileActive;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -14,12 +13,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.util.List;
 
 import static java.lang.String.format;
+import static java.lang.System.getProperties;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.Assume.assumeTrue;
 
-@IfProfileActive("postgresql")
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = {"classpath*:/spring/data-source.xml", "classpath*:/spring/env.xml"})
 public class PostgresDbMigrationIntegrationTest {
@@ -34,6 +34,8 @@ public class PostgresDbMigrationIntegrationTest {
 
     @Before
     public void setup() {
+        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("postgresql"));
+
         flyway.clean();
     }
 
