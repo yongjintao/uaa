@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -136,7 +137,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static java.util.Collections.emptyList;
 
-public class XOAuthAuthenticationManagerIT {
+public class XOAuthAuthenticationManagerTest {
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -165,6 +166,8 @@ public class XOAuthAuthenticationManagerIT {
     private XOAuthProviderConfigurator xoAuthProviderConfigurator;
     private UaaTokenServices uaaTokenServices;
 
+    private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
+
     private static final String PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\n" +
         "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
         "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
@@ -190,6 +193,8 @@ public class XOAuthAuthenticationManagerIT {
 
     @Before
     public void setUp() throws Exception {
+        testUaaUrlBuilder.build();
+
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         header = map(
@@ -233,7 +238,7 @@ public class XOAuthAuthenticationManagerIT {
             entry("sub", "12345"),
             entry("preferred_username", "marissa"),
             entry("origin", "uaa"),
-            entry("iss", "http://oidc10.oms.identity.team/oauth/token"),
+            entry("iss", "http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token"),
             entry("given_name", "Marissa"),
             entry("client_id", "client"),
             entry("aud", Arrays.asList("identity", "another_trusted_client")),
@@ -257,14 +262,14 @@ public class XOAuthAuthenticationManagerIT {
         attributeMappings = new HashMap<>();
 
         config = new OIDCIdentityProviderDefinition()
-            .setAuthUrl(new URL("http://oidc10.oms.identity.team/oauth/authorize"))
-            .setTokenUrl(new URL("http://oidc10.oms.identity.team/oauth/token"))
-            .setIssuer("http://oidc10.oms.identity.team/oauth/token")
+            .setAuthUrl(new URL("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/authorize"))
+            .setTokenUrl(new URL("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token"))
+            .setIssuer("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token")
             .setShowLinkText(true)
             .setLinkText("My OIDC Provider")
             .setRelyingPartyId("identity")
             .setRelyingPartySecret("identitysecret")
-            .setUserInfoUrl(new URL("http://oidc10.oms.identity.team/userinfo"))
+            .setUserInfoUrl(new URL("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/userinfo"))
             .setTokenKey(PUBLIC_KEY);
         config.setExternalGroupsWhitelist(
             Arrays.asList(
@@ -414,7 +419,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void unable_to_resolve_to_single_provider() throws Exception {
-        String issuer = "http://oidc10.oms.identity.team/oauth/token";
+        String issuer = "http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token";
         CompositeAccessToken token = getCompositeAccessToken();
         xCodeToken = new XOAuthCodeToken(null,null,null,token.getIdTokenValue(),null,null);
         exception.expect(InsufficientAuthenticationException.class);
@@ -446,7 +451,7 @@ public class XOAuthAuthenticationManagerIT {
         ArgumentCaptor<String> idTokenCaptor = ArgumentCaptor.forClass(String.class);
         verify(xoAuthAuthenticationManager, times(1)).resolveOriginProvider(idTokenCaptor.capture(), anyObject());
         verify(provisioning, never()).retrieveByOrigin(anyString(), anyString());
-        verify(xoAuthProviderConfigurator, times(1)).retrieveByIssuer(eq("http://oidc10.oms.identity.team/oauth/token"), anyString());
+        verify(xoAuthProviderConfigurator, times(1)).retrieveByIssuer(eq("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token"), anyString());
         assertEquals(token.getIdTokenValue(), idTokenCaptor.getValue());
     }
 
@@ -575,7 +580,7 @@ public class XOAuthAuthenticationManagerIT {
     @Test
     public void test_single_key_response() throws Exception {
         configureTokenKeyResponse(
-            "http://oidc10.oms.identity.team/token_key",
+            "http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key",
             PRIVATE_KEY,
             "correctKey",
             false);
@@ -589,7 +594,7 @@ public class XOAuthAuthenticationManagerIT {
         Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
         map.remove("value");
         json = JsonUtils.writeValueAsString(map);
-        configureTokenKeyResponse("http://oidc10.oms.identity.team/token_key",json);
+        configureTokenKeyResponse("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key",json);
         addTheUserOnAuth();
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -603,7 +608,7 @@ public class XOAuthAuthenticationManagerIT {
         mapValid.remove("value");
         mapInvalid.remove("value");
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapValid))));
-        configureTokenKeyResponse("http://oidc10.oms.identity.team/token_key",json);
+        configureTokenKeyResponse("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key",json);
         addTheUserOnAuth();
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -617,7 +622,7 @@ public class XOAuthAuthenticationManagerIT {
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
         assertTrue(json.contains("\"invalidKey\""));
         assertTrue(json.contains("\"invalidKey2\""));
-        configureTokenKeyResponse("http://oidc10.oms.identity.team/token_key",json);
+        configureTokenKeyResponse("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key",json);
         addTheUserOnAuth();
         try {
             xoAuthAuthenticationManager.authenticate(xCodeToken);
@@ -631,7 +636,7 @@ public class XOAuthAuthenticationManagerIT {
     @Test
     public void test_multi_key_response() throws Exception {
         configureTokenKeyResponse(
-            "http://oidc10.oms.identity.team/token_key",
+            "http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key",
             PRIVATE_KEY,
             "correctKey",
             true);
@@ -671,7 +676,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
-        configureTokenKeyResponse("http://oidc10.oms.identity.team/token_key", invalidRsaSigningKey, "wrongKey");
+        configureTokenKeyResponse("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key", invalidRsaSigningKey, "wrongKey");
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
@@ -806,7 +811,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
-        config.setTokenKeyUrl(new URL("http://oidc10.oms.identity.team/token_key"));
+        config.setTokenKeyUrl(new URL("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key"));
         config.setTokenKey(null);
 
         KeyInfo key = new KeyInfo();
@@ -816,7 +821,7 @@ public class XOAuthAuthenticationManagerIT {
         String response = JsonUtils.writeValueAsString(verificationKeyResponse);
 
         mockToken();
-        mockUaaServer.expect(requestTo("http://oidc10.oms.identity.team/token_key"))
+        mockUaaServer.expect(requestTo("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/token_key"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
@@ -970,7 +975,7 @@ public class XOAuthAuthenticationManagerIT {
 
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        mockUaaServer.expect(requestTo("http://oidc10.oms.identity.team/oauth/token")).andRespond(withServerError());
+        mockUaaServer.expect(requestTo("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token")).andRespond(withServerError());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
@@ -980,7 +985,7 @@ public class XOAuthAuthenticationManagerIT {
 
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        mockUaaServer.expect(requestTo("http://oidc10.oms.identity.team/oauth/token")).andRespond(withBadRequest());
+        mockUaaServer.expect(requestTo("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token")).andRespond(withBadRequest());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
@@ -1129,7 +1134,7 @@ public class XOAuthAuthenticationManagerIT {
 
     private void mockToken() throws MalformedURLException {
         String response = getIdTokenResponse();
-        mockUaaServer.expect(requestTo("http://oidc10.oms.identity.team/oauth/token"))
+        mockUaaServer.expect(requestTo("http://oidc10." + testUaaUrlBuilder.getSystemDomain() + "/oauth/token"))
             .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
             .andExpect(header("Accept", "application/json"))
             .andExpect(content().string(containsString("grant_type=authorization_code")))

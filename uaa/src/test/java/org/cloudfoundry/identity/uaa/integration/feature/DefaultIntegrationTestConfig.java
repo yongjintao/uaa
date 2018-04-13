@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -37,6 +38,7 @@ import java.util.logging.Level;
 
 @Configuration
 @PropertySource("classpath:integration.test.properties")
+@PropertySource({"classpath:integration.test.properties", "classpath:uaa.test.yml"})
 public class DefaultIntegrationTestConfig {
 
     @Bean
@@ -95,6 +97,12 @@ public class DefaultIntegrationTestConfig {
                                  @Value("${integration.test.uaa_url}") String baseUrl,
                                  @Value("${integration.test.uaa_url}") String uaaUrl) {
         return new TestClient(restTemplate, baseUrl, uaaUrl);
+    }
+
+    @Bean
+    public RestTemplate adminRestTemplate(@Value("${integration.test.base_url}") String baseUrl) {
+        return IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret"));
     }
 
     @Bean

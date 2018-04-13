@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,6 +101,8 @@ public class InvitationsIT {
     private String loginToken;
     private String testInviteEmail;
 
+    private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
+
     @Before
     public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
@@ -107,6 +110,8 @@ public class InvitationsIT {
         screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
+
+        testUaaUrlBuilder.build();
     }
 
     @Before
@@ -277,7 +282,12 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.oms.identity.team/logout.do");
+        webDriver.get(
+            String.format(
+                "https://oidc10.%s/logout.do",
+                testUaaUrlBuilder.getSystemDomain()
+            )
+        );
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 

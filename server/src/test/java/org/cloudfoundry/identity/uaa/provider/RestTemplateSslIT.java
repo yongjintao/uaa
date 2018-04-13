@@ -17,7 +17,9 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.util.RestTemplateFactory;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.ResponseErrorHandler;
@@ -28,6 +30,12 @@ import java.io.IOException;
 import static org.junit.Assert.assertNotNull;
 
 public class RestTemplateSslIT {
+    private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
+
+    @Before
+    public void setUp() {
+        testUaaUrlBuilder.build();
+    }
 
     @Test
     public void test() throws Exception {
@@ -37,7 +45,7 @@ public class RestTemplateSslIT {
             @Override public void handleError(ClientHttpResponse response) throws IOException {}
         });
         ExpiringUrlCache cache = new ExpiringUrlCache(1, new TimeServiceImpl(), 1);
-        byte[] data = cache.getUrlContent("https://idp.login.oms.identity.team:443/saml/idp/metadata", template);
+        byte[] data = cache.getUrlContent("https://idp.login." + testUaaUrlBuilder.getSystemDomain() + ":443/saml/idp/metadata", template);
         assertNotNull(data);
         System.out.println(new String(data));
     }

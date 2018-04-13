@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TestUaaUrlBuilder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.flywaydb.core.internal.util.StringUtils;
@@ -122,7 +123,7 @@ public class SamlLoginIT {
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
-    RestOperations restOperations;
+    RestOperations restTemplate;
 
     @Autowired
     WebDriver webDriver;
@@ -140,6 +141,7 @@ public class SamlLoginIT {
     private static SamlTestUtils samlTestUtils;
 
     private static SamlIdentityProviderCreator idpCreator;
+    private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
 
     @BeforeClass
     public static void setupSamlUtils() throws Exception {
@@ -173,7 +175,7 @@ public class SamlLoginIT {
         String loginUrl = baseUrl + "/login";
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.add("Accept", "application/json");
-        ResponseEntity<Map> jsonResponseEntity = restOperations.exchange(loginUrl,
+        ResponseEntity<Map> jsonResponseEntity = restTemplate.exchange(loginUrl,
             HttpMethod.GET,
             new HttpEntity<>(jsonHeaders),
             Map.class);
@@ -181,7 +183,7 @@ public class SamlLoginIT {
 
         HttpHeaders htmlHeaders = new HttpHeaders();
         htmlHeaders.add("Accept", "text/html");
-        ResponseEntity<Void> htmlResponseEntity = restOperations.exchange(loginUrl,
+        ResponseEntity<Void> htmlResponseEntity = restTemplate.exchange(loginUrl,
             HttpMethod.GET,
             new HttpEntity<>(htmlHeaders),
             Void.class);
@@ -189,7 +191,7 @@ public class SamlLoginIT {
 
         HttpHeaders defaultHeaders = new HttpHeaders();
         defaultHeaders.add("Accept", "*/*");
-        ResponseEntity<Void> defaultResponseEntity = restOperations.exchange(loginUrl,
+        ResponseEntity<Void> defaultResponseEntity = restTemplate.exchange(loginUrl,
             HttpMethod.GET,
             new HttpEntity<>(defaultHeaders),
             Void.class);
@@ -1443,9 +1445,14 @@ public class SamlLoginIT {
     public SamlIdentityProviderDefinition getTestURLDefinition() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId("uaa");
-        def.setMetaDataLocation("https://branding.login.oms.identity.team/saml/metadata?random="+new RandomValueStringGenerator().generate());
-        //def.setMetaDataLocation("https://login.run.pivotal.io/saml/metadata");
-        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+        def.setMetaDataLocation(
+            String.format(
+                "https://branding.login.%s/saml/metadata?random=%s",
+                testUaaUrlBuilder.getSystemDomain(),
+                new RandomValueStringGenerator().generate()
+            )
+        );
+            def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setAssertionConsumerIndex(0);
         def.setMetadataTrustCheck(false);
         def.setShowSamlLink(true);
