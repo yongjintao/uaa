@@ -7,6 +7,7 @@ source $DIR/start_ldap_helper.sh
 
 TESTENV="$1"
 UAA_DIR="$2"
+TARGET_CF_SYSTEM_DOMAIN="$3"
 
 cat <<EOF >>/etc/hosts
 127.0.0.1 testzone1.localhost
