@@ -29,14 +29,7 @@ import java.io.IOException;
 
 import static org.junit.Assert.assertNotNull;
 
-public class RestTemplateSslIT {
-    private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
-
-    @Before
-    public void setUp() {
-        testUaaUrlBuilder.build();
-    }
-
+public class RestTemplateSslTest {
     @Test
     public void test() throws Exception {
         RestTemplate template = new RestTemplateFactory().getRestTemplate(true);
@@ -45,7 +38,7 @@ public class RestTemplateSslIT {
             @Override public void handleError(ClientHttpResponse response) throws IOException {}
         });
         ExpiringUrlCache cache = new ExpiringUrlCache(1, new TimeServiceImpl(), 1);
-        byte[] data = cache.getUrlContent("https://idp.login." + testUaaUrlBuilder.getSystemDomain() + ":443/saml/idp/metadata", template);
+        byte[] data = cache.getUrlContent("https://google.com", template);
         assertNotNull(data);
         System.out.println(new String(data));
     }
