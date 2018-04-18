@@ -179,6 +179,10 @@ public class IntegrationTestUtils {
         return rest.exchange(request, UserInfoResponse.class).getBody();
     }
 
+    /**
+     * {@link IdentityZoneUtils#deleteZone(String, String, String)}
+     */
+    @Deprecated
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
         RestTemplate rest = new RestTemplate(createRequestFactory(true));
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
@@ -242,6 +246,17 @@ public class IntegrationTestUtils {
         }
     };
 
+    public static boolean doesSupportZoneDNS(List<String> addresses) {
+        try {
+            for (String address: addresses) {
+                Arrays.equals(Inet4Address.getByName(address).getAddress(), new byte[] {127,0,0,1});
+            }
+            return true;
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
+
     public static boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&
@@ -287,6 +302,10 @@ public class IntegrationTestUtils {
         return client;
     }
 
+    /**
+     * {@link UserUtils#createUser(String, String, String, String, String, String, boolean, String)}
+     */
+    @Deprecated
     public static ScimUser createUser(RestTemplate client,
                                       String url,
                                       String username,
@@ -391,6 +410,10 @@ public class IntegrationTestUtils {
         return user;
     }
 
+    /**
+     * {@link UserUtils#getUserById(String, String, String, String)}
+     */
+    @Deprecated
     public static ScimUser getUser(String token, String url, String userId) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
@@ -703,7 +726,7 @@ public class IntegrationTestUtils {
 
     public static BaseClientDetails getClient(String token,
                                               String url,
-                                              String clientId) throws Exception {
+                                              String clientId) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
@@ -798,7 +821,7 @@ public class IntegrationTestUtils {
 
     public static BaseClientDetails updateClient(String url,
                                                  String token,
-                                                 BaseClientDetails client) throws Exception {
+                                                 BaseClientDetails client) {
 
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
@@ -818,6 +841,10 @@ public class IntegrationTestUtils {
         return response.getBody();
     }
 
+    /**
+     * {@link IdentityProviderUtils#getIdentityProviderByOriginKey(String, String, String, String)}
+     */
+    @Deprecated
     public static IdentityProvider getProvider(String zoneAdminToken,
                                                String url,
                                                String zoneId,
@@ -1066,7 +1093,7 @@ public class IntegrationTestUtils {
 
     public static String getClientCredentialsToken(String baseUrl,
                                                    String clientId,
-                                                   String clientSecret) throws Exception {
+                                                   String clientSecret) {
         RestTemplate template = new RestTemplate();
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -1449,4 +1476,14 @@ public class IntegrationTestUtils {
         }
     }
 
+    public static MultiValueMap<String, String> createHeadersWithTokenAndZone(String token, String zoneSubdomain) {
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", APPLICATION_JSON_VALUE);
+        if (!org.apache.commons.lang3.StringUtils.isBlank(zoneSubdomain)) {
+            headers.add("X-Identity-Zone-Subdomain", zoneSubdomain);
+        }
+        return headers;
+    }
 }

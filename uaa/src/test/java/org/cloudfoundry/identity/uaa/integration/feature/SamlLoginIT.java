@@ -18,8 +18,9 @@ import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.SamlIdentityProviderCreator;
+import org.cloudfoundry.identity.uaa.integration.util.SamlIntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
-import org.cloudfoundry.identity.uaa.integration.util.SimpleSamlPhpIdpCreator;
+import org.cloudfoundry.identity.uaa.integration.util.UaaSamlIdpCreator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -71,7 +72,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -123,7 +123,10 @@ public class SamlLoginIT {
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
-    RestOperations restTemplate;
+    RestTemplate restTemplate;
+
+    @Autowired
+    RestTemplate adminRestTemplate;
 
     @Autowired
     WebDriver webDriver;
@@ -138,10 +141,11 @@ public class SamlLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
+
     private static SamlTestUtils samlTestUtils;
 
-    private static SamlIdentityProviderCreator idpCreator;
     private TestUaaUrlBuilder testUaaUrlBuilder = new TestUaaUrlBuilder();
+    private SamlIdentityProviderCreator idpCreator;
 
     @BeforeClass
     public static void setupSamlUtils() throws Exception {
@@ -152,7 +156,15 @@ public class SamlLoginIT {
         } catch (ConfigurationException e) {
             samlTestUtils.initializeSimple();
         }
-        idpCreator = new SimpleSamlPhpIdpCreator(SAML_ORIGIN, ServerRunning.isRunning());
+    }
+
+    @Before
+    public void initIdpCreator() {
+        if (idpCreator == null) {
+            idpCreator = UaaSamlIdpCreator.createUaaZoneAndReturnCreator(adminRestTemplate, baseUrl, "idp", "sp");
+        }
+
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(adminRestTemplate, baseUrl, "sp", "sp");
     }
 
     public static String getValidRandomIDPMetaData() {
